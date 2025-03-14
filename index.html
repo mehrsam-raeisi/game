@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gun Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            overflow: hidden;
+            margin: 0;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            background-color: #333;
+            border: 5px solid #fff;
+        }
+        #gameInfo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameInfo">
+        Score: <span id="score">0</span> | Time: <span id="time">30</span>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameOver = false;
+        let targets = [];
+        let bullets = [];
+
+        // Gun
+        const gun = {
+            x: canvas.width / 2 - 30,
+            y: canvas.height - 50,
+            width: 60,
+            height: 30,
+            color: 'black'
+        };
+
+        // Target
+        function createTarget() {
+            const targetSize = 30;
+            const targetX = Math.floor(Math.random() * (canvas.width - targetSize));
+            return {
+                x: targetX,
+                y: -targetSize,
+                size: targetSize,
+                color: "red",
+                speed: Math.random() * 2 + 1
+            };
+        }
+
+        // Bullet
+        function createBullet(x, y) {
+            return {
+                x: x,
+                y: y,
+                width: 5,
+                height: 10,
+                color: "white",
+                speed: 5
+            };
+        }
+
+        // Draw Gun
+        function drawGun() {
+            ctx.fillStyle = gun.color;
+            ctx.fillRect(gun.x, gun.y, gun.width, gun.height);
+        }
+
+        // Draw Targets
+        function drawTargets() {
+            for (let i = 0; i < targets.length; i++) {
+                const target = targets[i];
+                ctx.fillStyle = target.color;
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, target.size, 0, Math.PI * 2);
+                ctx.fill();
+                target.y += target.speed; // Move down
+                if (target.y > canvas.height) {
+                    gameOverFunc();
+                }
+            }
+        }
+
+        // Draw Bullets
+        function drawBullets() {
+            for (let i = 0; i < bullets.length; i++) {
+                const bullet = bullets[i];
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                bullet.y -= bullet.speed; // Move up
+
+                // Remove bullet if off-screen
+                if (bullet.y < 0) {
+                    bullets.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        // Check Bullet Collision with Targets
+        function checkCollisions() {
+            for (let i = 0; i < bullets.length; i++) {
+                for (let j = 0; j < targets.length; j++) {
+                    const bullet = bullets[i];
+                    const target = targets[j];
+
+                    // Check if bullet hits target
+                    const distX = bullet.x - target.x;
+                    const distY = bullet.y - target.y;
+                    const distance = Math.sqrt(distX * distX + distY * distY);
+                    if (distance < target.size) {
+                        score++;
+                        document.getElementById("score").textContent = score;
+                        targets.splice(j, 1); // Remove target
+                        bullets.splice(i, 1); // Remove bullet
+                        i--;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Game Over function
+        function gameOverFunc() {
+            gameOver = true;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "red";
+            ctx.font = "50px Arial";
+            ctx.fillText("GAME OVER", canvas.width / 2 - 150, canvas.height / 2);
+            ctx.font = "30px Arial";
+            ctx.fillText(`Final Score: ${score}`, canvas.width / 2 - 90, canvas.height / 2 + 50);
+        }
+
+        // Update Timer
+        function updateTime() {
+            if (gameOver) return;
+            if (timeLeft > 0) {
+                timeLeft--;
+                document.getElementById("time").textContent = timeLeft;
+            } else {
+                gameOverFunc();
+            }
+        }
+
+        // Update Game State
+        function updateGame() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGun();
+            drawTargets();
+            drawBullets();
+            checkCollisions();
+
+            if (Math.random() < 0.02) {
+                targets.push(createTarget());
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        // Shoot Bullet
+        document.addEventListener("click", (event) => {
+            if (gameOver) return;
+            const bullet = createBullet(gun.x + gun.width / 2 - 2.5, gun.y);
+            bullets.push(bullet);
+        });
+
+        // Move Gun with Mouse
+        document.addEventListener("mousemove", (event) => {
+            if (gameOver) return;
+            gun.x = event.clientX - gun.width / 2;
+        });
+
+        // Start Game
+        function startGame() {
+            setInterval(updateTime, 1000); // Update timer every second
+            requestAnimationFrame(updateGame);
+        }
+
+        // Start the game
+        startGame();
+    </script>
+</body>
+</html>
